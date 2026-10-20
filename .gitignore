@@ -4,3 +4,5 @@ models/
 __pycache__/
 *.pyc
 viomi-backup/
+*.tar.gz
+*.upx
