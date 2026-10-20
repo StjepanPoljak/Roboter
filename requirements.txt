@@ -1,0 +1,11 @@
+anthropic==1.15.0
+opencv-python-headless==4.12.0.88
+numpy>=2,<3
+piper-tts==1.8.0
+faster-whisper==1.2.1
+# openWakeWord's own dependencies; the package itself is installed with --no-deps
+# (see Dockerfile) because it pins tflite-runtime, which has no Python 3.12 builds.
+scipy<2
+scikit-learn<2
+requests<3
+tqdm<5
