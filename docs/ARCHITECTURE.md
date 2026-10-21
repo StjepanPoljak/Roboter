@@ -21,7 +21,7 @@
 │                     robot/brain.py ── HTTPS (text only) ──► Claude API               │
 │                                        │  ◄── speak("Hi Stjepan!") or silence        │
 │                                        ▼                                             │
-│                     robot/tts.py   Piper → data/audio/last.wav → paplay/aplay        │
+│                     robot/tts.py   Piper → data/audio/last.wav → paplay/aplay/vacuum │
 │                                                                                     │
 │  robot/listener.py (python -m robot listen)                                         │
 │    mic → openWakeWord → Silero VAD → Whisper → /data/spool/*-voice-*.json           │

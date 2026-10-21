@@ -102,8 +102,12 @@ def cmd_faces(config: Config, args) -> None:
 
 
 def cmd_say(config: Config, args) -> None:
+    from dataclasses import replace
+
     from .tts import Speaker
 
+    if args.output:
+        config = replace(config, audio_output=args.output)
     Speaker(config).say(" ".join(args.text), args.lang)
 
 
@@ -182,6 +186,7 @@ def main() -> None:
 
     p = sub.add_parser("say", help="test speech output")
     p.add_argument("--lang", help="language code from TTS_VOICES, e.g. en or hr")
+    p.add_argument("--output", choices=["local", "viomi"], help="override AUDIO_OUTPUT for this one")
     p.add_argument("text", nargs="+")
     p.set_defaults(func=cmd_say)
 

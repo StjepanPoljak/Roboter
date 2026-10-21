@@ -125,8 +125,8 @@ Skip the repo's RTL8821CS step (`/opt/8821cs/enable_8821cs.sh`). It's only for C
 
 ## After rooting: next steps for the robot project
 
-- [ ] Check Valetudo's API (`http://<robot-ip>/swagger/`) for **manual control** /
-      remote-control capabilities. That decides whether the vacuum can be driven
-      step by step ("forward 30 cm") or only sent to map points.
+- [x] Check Valetudo's API (`http://<robot-ip>/swagger/`) for **manual control** /
+      remote-control capabilities. Answer: `ManualControlCapability` exists (forward,
+      backward, rotate); no go-to-point. Full survey: [docs/VIOMI_ROBOT.md](docs/VIOMI_ROBOT.md).
 - [ ] Add a `ValetudoBody` backend in `robot/` (see ROADMAP.md, stage 5).
 - [ ] Mount the camera, speaker (and later the Pi) on top of the vacuum.

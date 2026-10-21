@@ -34,6 +34,8 @@ class Config:
     # language code -> (engine, voice); the first entry is the default
     voices: dict[str, tuple[str, str]]
     audio_player: str
+    audio_output: str  # local | viomi (the rooted vacuum's own speaker, over SSH)
+    viomi_host: str
 
     min_confidence: float
     face_threshold: float
@@ -60,6 +62,11 @@ class Config:
         return self.data_dir / "audio"
 
     @property
+    def viomi_dir(self) -> Path:
+        """SSH key and known_hosts for reaching the vacuum (docs/TTS.md)."""
+        return self.data_dir / "viomi"
+
+    @property
     def speaking_flag(self) -> Path:
         """Exists while the robot talks, so the listener doesn't react to its own voice."""
         return self.audio_dir / "speaking"
@@ -79,6 +86,8 @@ class Config:
                 _env("TTS_VOICES", "en=piper:en_US-lessac-low,hr=piper:sr_RS-serbski_institut-medium")
             ),
             audio_player=_env("AUDIO_PLAYER", "paplay" if pulse else "aplay"),
+            audio_output=_env("AUDIO_OUTPUT", "local"),
+            viomi_host=_env("VIOMI_HOST", ""),
             min_confidence=float(_env("ROBOT_MIN_CONFIDENCE", "0.5")),
             # SFace's recommended cosine-similarity threshold for "same person".
             face_threshold=float(_env("ROBOT_FACE_THRESHOLD", "0.363")),

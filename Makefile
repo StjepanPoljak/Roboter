@@ -63,9 +63,9 @@ enroll-cam: data
 faces: data
 	$(DOCKER_RUN) $(IMAGE) faces
 
-## make say TEXT="hello there" [IN=hr]
+## make say TEXT="hello there" [IN=hr] [OUT=viomi]   (docs/TTS.md)
 say: data
-	$(DOCKER_RUN) $(IMAGE) say $(if $(IN),--lang $(IN)) $(TEXT)
+	$(DOCKER_RUN) $(IMAGE) say $(if $(IN),--lang $(IN)) $(if $(OUT),--output $(OUT)) $(TEXT)
 
 ## make ask TEXT="what do you see?" [IN=hr]   (talk to it by typing; no microphone)
 ask: data

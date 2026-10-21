@@ -66,7 +66,7 @@ All commands run inside the container (`make <target>`) or as `python -m robot <
 | `enroll NAME=… IMGS="data/a.jpg data/b.jpg"` | Learns a face from photos. |
 | `enroll-cam NAME=…` | Learns a face from 8 webcam samples. |
 | `faces` | Lists known people. Remove one with `docker run … robot:dev faces --forget NAME`. |
-| `say TEXT=… [IN=hr]` | Tests speech output. |
+| `say TEXT=… [IN=hr] [OUT=viomi]` | Tests speech output, locally or on the vacuum's speaker ([docs/TTS.md](docs/TTS.md)). |
 | `ask TEXT=… [IN=hr]` | Talks to the robot by typing, as if you'd said the wake word. |
 | `listen-test` | Wake word + speech-to-text only; prints what it heard. |
 | `transcribe WAV=…` | Speech-to-text on a 16 kHz mono WAV. |
@@ -92,6 +92,8 @@ data/           runtime state: spool, snapshots, faces.npz, audio (git-ignored)
 - [docs/CLAUDE_ACCESS.md](docs/CLAUDE_ACCESS.md): subscription (`claude -p`) vs. API key
 - [docs/FACES.md](docs/FACES.md): face enrollment, accuracy, privacy
 - [docs/WAKEWORD.md](docs/WAKEWORD.md): wake word, custom name, speech-to-text
+- [docs/TTS.md](docs/TTS.md): speech output, voices, playing on the vacuum's speaker
 - [docs/HARDWARE.md](docs/HARDWARE.md): moving to the Raspberry Pi, cheap parts list
 - [ROADMAP.md](ROADMAP.md): where this is going
 - [VIOMI_ROOT.md](VIOMI_ROOT.md): rooting the Viomi vacuum (future body)
+- [docs/VIOMI_ROBOT.md](docs/VIOMI_ROBOT.md): what's inside the rooted vacuum: hardware, software, API, lidar

@@ -8,6 +8,8 @@ RUN apt-get update \
         espeak-ng \
         pulseaudio-utils \
         alsa-utils \
+        openssh-client \
+        libnss-wrapper \
         curl \
         ca-certificates \
         libglib2.0-0 \

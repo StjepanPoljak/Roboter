@@ -104,6 +104,39 @@ class VoiceTest(unittest.TestCase):
             self.assertGreater(np.abs(chunks[0]).max(), 1000)
             self.assertEqual(np.abs(chunks[-1]).max(), 0)
 
+    def test_viomi_conversion_is_44k_stereo(self):
+        import wave
+
+        from robot.tts import to_stereo_44k
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src, dst = Path(tmp) / "piper.wav", Path(tmp) / "viomi.wav"
+            tone = (8000 * np.sin(2 * np.pi * 440 * np.arange(16000) / 16000)).astype("<i2")
+            with wave.open(str(src), "wb") as wav:  # 1 s of 16 kHz mono, like Piper's low voices
+                wav.setnchannels(1)
+                wav.setsampwidth(2)
+                wav.setframerate(16000)
+                wav.writeframes(tone.tobytes())
+            to_stereo_44k(src, dst)
+            with wave.open(str(dst), "rb") as wav:
+                self.assertEqual((wav.getnchannels(), wav.getframerate()), (2, 44100))
+                self.assertEqual(wav.getnframes(), 44100)
+                out = np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2").reshape(-1, 2)
+            np.testing.assert_array_equal(out[:, 0], out[:, 1])
+            self.assertAlmostEqual(np.abs(out).max() / 8000, 1.0, delta=0.05)
+
+    def test_viomi_output_without_host_doesnt_crash(self):
+        from dataclasses import replace
+
+        from robot.config import Config
+        from robot.tts import Speaker
+
+        with tempfile.TemporaryDirectory() as tmp:
+            config = replace(Config.from_env(), data_dir=Path(tmp), audio_output="viomi", viomi_host="")
+            with self.assertLogs("robot.tts", "WARNING"):
+                Speaker(config).play(Path(tmp) / "missing.wav")
+            self.assertFalse(config.speaking_flag.exists())
+
     def test_prompt_includes_what_was_heard(self):
         from robot.brain import Brain
         from robot.config import Config
@@ -116,6 +149,76 @@ class VoiceTest(unittest.TestCase):
         prompt = brain.build_prompt("- nothing recognized", datetime(2026, 10, 20, 18, 1), "voice", "hi", "en")
         self.assertIn('"hi"', prompt)
         self.assertIn('heard: "what do you see?"', prompt)
+
+
+def lidar_frame(cmd: int, payload: bytes) -> bytes:
+    body = bytes([0xAA]) + (8 + len(payload)).to_bytes(2, "big") + bytes([0x01, 0x61, cmd])
+    body += len(payload).to_bytes(2, "big") + payload
+    return body + (sum(body) & 0xFFFF).to_bytes(2, "big")
+
+
+def scan_packet(start_deg: float, distances_mm: list[float]) -> bytes:
+    payload = bytes([137]) + b"\x00\x10" + round(start_deg * 100).to_bytes(2, "big")
+    for mm in distances_mm:
+        payload += bytes([0x99]) + round(mm * 4).to_bytes(2, "big")
+    return lidar_frame(0xAD, payload)
+
+
+class LidarTest(unittest.TestCase):
+    def test_frames_skip_garbage_and_bad_checksums(self):
+        from robot.lidar import frames
+
+        good = lidar_frame(0xAE, b"\x42")
+        bad = bytearray(good)
+        bad[-1] ^= 1
+        self.assertEqual(list(frames(b"\x00\xaa" + bytes(bad) + good)), [(0xAE, b"\x42")])
+
+    def test_real_frame_checksum(self):
+        from robot.lidar import frames
+
+        # A spin-up frame as captured from the robot's ttyS1.
+        self.assertEqual(list(frames(bytes.fromhex("aa 00 09 01 61 ae 00 01 00 01 c4"))), [(0xAE, b"\x00")])
+
+    def test_rotations_units_and_flags(self):
+        from robot.lidar import rotations
+
+        data = scan_packet(337.5, [999])  # partial turn before the first 0°: dropped
+        for turn in range(2):
+            for k in range(16):
+                data += scan_packet(k * 22.5, [500, 0, 1000 + k] if k else [0x4000 / 4 + 250, 1500, 2000])
+        data += scan_packet(0, [700])  # unfinished third turn: dropped
+        turns = rotations(data)
+        self.assertEqual(len(turns), 2)
+        first = turns[0]
+        self.assertAlmostEqual(first[0].angle, 7.5)  # flagged sample at 0° skipped
+        self.assertAlmostEqual(first[0].distance, 1.5)  # 0.25 mm units
+        self.assertNotIn(0.0, [s.distance for s in first])
+        self.assertEqual(len(first), 2 + 15 * 2)
+
+    def test_describe_sectors(self):
+        from robot.lidar import Sample, describe
+
+        turn = [Sample(10, 0.8, 99), Sample(350, 0.5, 99), Sample(90, 2.0, 99), Sample(180, 1.2, 99)]
+        text = describe(turn)
+        self.assertIn("- ahead: nearest 0.50 m", text)
+        self.assertIn("- left: nearest 2.00 m", text)
+        self.assertIn("- right: nothing within range", text)
+        self.assertIn("- left: nearest 1.20 m", describe(turn, forward_deg=90))
+
+    def test_strace_joins_resumed_reads(self):
+        from robot.lidar import strace_streams
+
+        log = [
+            '753   09:43:53.819005 read(8, "\\xaa", 1) = 1',
+            '753   09:43:53.819200 read(8,  <unfinished ...>',
+            '746   09:43:53.819300 read(4, "\\xfa\\xfb", 2) = 2',
+            '753   09:43:53.819894 <... read resumed> "\\x00\\t", 2) = 2',
+            '755   09:43:53.820000 write(4, "\\x03", 1) = 1',
+        ]
+        streams = strace_streams(log)
+        self.assertEqual(streams[("read", "8")], b"\xaa\x00\x09")
+        self.assertEqual(streams[("read", "4")], b"\xfa\xfb")
+        self.assertEqual(streams[("write", "4")], b"\x03")
 
 
 @unittest.skipUnless((MODELS / "ssd_mobilenet_v2.pb").exists(), "models not downloaded")

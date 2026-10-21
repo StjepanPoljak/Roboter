@@ -8,6 +8,15 @@ DATA="${ROBOT_DATA_DIR:-/data}"
 mkdir -p "$DATA/spool" "$DATA/snapshots" "$DATA/audio"
 rm -f "$DATA/audio/speaking"
 
+# `make` runs us as the host user's UID, which has no /etc/passwd entry here, and ssh
+# (speech on the vacuum, docs/TTS.md) refuses to start without one. nss_wrapper adds
+# the entry for our processes only; /etc/passwd stays read-only.
+if ! id -un >/dev/null 2>&1; then
+    PASSWD=/tmp/passwd
+    { cat /etc/passwd; echo "robot:x:$(id -u):$(id -g):robot:${HOME:-/tmp}:/bin/sh"; } > "$PASSWD"
+    export LD_PRELOAD=libnss_wrapper.so NSS_WRAPPER_PASSWD="$PASSWD" NSS_WRAPPER_GROUP=/etc/group
+fi
+
 [ $# -eq 0 ] && set -- run
 
 if [ "$1" != "run" ]; then
