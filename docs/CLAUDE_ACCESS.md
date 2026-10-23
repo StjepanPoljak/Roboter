@@ -1,6 +1,7 @@
 # Reaching Claude
 
-The robot can talk to Claude two ways. Pick one with `CLAUDE_BACKEND` in `.env`.
+The robot can talk to Claude two ways. Pick one with `backend` under `[claude]` in `robot.toml`;
+the credential goes in `.env`.
 
 | | `cli`: Claude Code (`claude -p`) | `api`: Claude API |
 |---|---|---|
@@ -17,9 +18,8 @@ login, so neither can break the other, and you can revoke it on its own:
 
 ```sh
 make claude-token     # on the host: opens a browser login, prints a long-lived token
-# put it in .env:
-#   CLAUDE_BACKEND=cli
-#   CLAUDE_CODE_OAUTH_TOKEN=<token>
+# put it in .env:          CLAUDE_CODE_OAUTH_TOKEN=<token>
+# and in robot.toml:        [claude] backend = "cli"
 make ask TEXT="hello, can you hear me?"
 ```
 
@@ -28,7 +28,7 @@ How it's called (`robot/brain.py: _ask_claude_code`):
 ```
 claude -p --output-format json --no-session-persistence
        --tools "" --strict-mcp-config --setting-sources ""
-       --model $CLAUDE_MODEL --effort $CLAUDE_EFFORT
+       --model <claude.model> --effort <claude.effort>
        --system-prompt <robot persona> --json-schema <{speak, text, language}>
        <scene description / transcript>
 ```
@@ -53,13 +53,12 @@ call; measure it, and consider `api` there if it's too slow.
 
 ```sh
 # platform.claude.com → API Keys → Create key (add a little credit under Billing)
-# .env:
-#   CLAUDE_BACKEND=api
-#   ANTHROPIC_API_KEY=sk-ant-...
+# .env:        ANTHROPIC_API_KEY=sk-ant-...
+# robot.toml:  [claude] backend = "api"
 ```
 
 Uses the Anthropic Python SDK directly (`robot/brain.py: _ask_claude`) with a `speak` tool.
 
 ## Neither yet?
 
-`ROBOT_DRY_RUN=1` runs everything except the Claude call and logs the prompt instead.
+`dry_run = true` under `[claude]` runs everything except the Claude call and logs the prompt instead.

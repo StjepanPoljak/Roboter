@@ -471,7 +471,7 @@ startup** (`/api/v2/valetudo/log/content`). Don't paste that log into issues or 
    and could run off its own power bank.
 3. **The robot can speak with the project's own voice.** Convert Piper's WAV to
    44.1 kHz stereo, copy it over SSH, and `aplay` it with `gpio233` low (recipe in
-   [Audio](#audio)). Built in: `AUDIO_OUTPUT=viomi` in `.env`, or
+   [Audio](#audio)). Built in: `speech.output = "viomi"` in `robot.toml`, or
    `make say TEXT=… OUT=viomi` ([docs/TTS.md](TTS.md)).
 4. **Raw lidar scans are available** while the robot navigates (not while docked or in
    manual mode): ~300 points per turn at 1.37 rev/s, 0.25 mm units. Useful as a text

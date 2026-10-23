@@ -26,10 +26,10 @@
 │  robot/listener.py (python -m robot listen)                                         │
 │    mic → openWakeWord → Silero VAD → Whisper → /data/spool/*-voice-*.json           │
 │    voice events skip the queue and the cooldown; the brain grabs a fresh frame      │
-│    from Motion's stream (ROBOT_CAMERA_STREAM) so Claude knows what's in view        │
+│    from Motion's stream (camera.stream) so Claude knows what's in view              │
 │                                                                                     │
-│  ROBOT_CAMERA=sample: no Motion. robot/camera.py reads the camera in a thread and   │
-│    Robot.run() describes the newest frame every ROBOT_SAMPLE_INTERVAL_S, between    │
+│  camera.mode = sample: no Motion. robot/camera.py reads the camera in a thread and  │
+│    Robot.run() describes the newest frame every camera.sample_interval_s, between   │
 │    spool events. Voice events use that same frame.                                  │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -40,8 +40,8 @@
 cheap at "did pixels change?". The neural networks only run on the one snapshot per event,
 which is what makes a Pi 3B+ viable.
 
-**Or sample, if Motion is hard to tune.** `ROBOT_CAMERA=sample` skips Motion and runs the
-detectors on one frame per `ROBOT_SAMPLE_INTERVAL_S` (default 1 s). Nothing to calibrate,
+**Or sample, if Motion is hard to tune.** `camera.mode = "sample"` skips Motion and runs the
+detectors on one frame per `camera.sample_interval_s` (default 1 s). Nothing to calibrate,
 and it notices someone standing still, which Motion can't. The price is CPU: the object
 detector runs on every sample, not once per event. On a Pi 3B+ it takes several hundred
 ms per frame, so an interval below that just means back-to-back samples. Claude is still
@@ -54,7 +54,13 @@ half a file.
 
 **Text only to Claude.** Privacy, and cost: a scene description is about 100 tokens, an
 image is about 1000+. The downside is that Claude knows only the 80 COCO classes plus the
-names of enrolled faces. Stage 4 in the roadmap adds an opt-in `look_closely` tool.
+names of enrolled faces. For that, `look_closely` (off by default, docs/LOOK_CLOSELY.md)
+lets Claude ask for one real image when someone asks it something the text can't answer.
+
+**One settings file.** `robot.toml` holds every setting (`robot/config.py` reads it into
+one frozen `Config`), `.env` holds only secrets. A `ROBOT_<SECTION>_<KEY>` variable
+overrides one setting for one run, which is how the Makefile and the entrypoint adjust
+things without editing the file. Unknown keys are an error, so typos don't go unnoticed.
 
 **Claude's reply is a tool call.** `speak(text, language)` means "say this, with the
 voice for that language"; no tool call means silence. Movement tools will be added the same way later.
@@ -64,7 +70,7 @@ events and replies are included as text, so Claude doesn't greet you twice in a 
 without keeping a growing conversation.
 
 **Two cost brakes.** Events with nothing recognized never reach Claude. A scene that
-Claude already reacted to (same labels and same names) within `ROBOT_COOLDOWN_S` is
+Claude already reacted to (same labels and same names) within `vision.cooldown_s` is
 skipped. Every recent scene is remembered, not just the last one, so a face that flickers
 between your name and "unknown" from one sample to the next doesn't cost a call per flip.
 
@@ -92,7 +98,7 @@ All of them are downloaded at image build time by `scripts/download_models.sh`.
 - `api`: the Anthropic SDK with one strict `speak(text, language)` tool and server-side
   refusal fallbacks (`fallbacks="default"`).
 
-Both use `CLAUDE_MODEL` (default `claude-opus-5-5`) at `effort=low`, since it's a short
+Both use `claude.model` (default `claude-opus-5-5`) at `effort=low`, since it's a short
 judgment call. Errors are logged and the event is skipped; the robot never crashes
 because the network or the login is down.
 

@@ -6,7 +6,7 @@
 mic (parec / arecord, 16 kHz)
   │  80 ms chunks, kept in memory and thrown away
   ▼
-openWakeWord ── score ≥ WAKEWORD_THRESHOLD? ──no──► (forget the chunk)
+openWakeWord ── score ≥ listen.threshold? ──no──► (forget the chunk)
   │ yes
   ▼
 chime ("I'm listening")
@@ -25,7 +25,7 @@ voice event in data/spool/ ──► brain: transcript + current camera scene �
   listener ignores the microphone.
 - Croatian is often detected as Serbian or Bosnian; those count as Croatian
   (`robot/listener.py: LANGUAGE_ALIASES`). Claude answers in the language you used, and
-  `TTS_VOICES` picks the voice for that language.
+  `speech.voices` picks the voice for that language.
 
 ## Trying it
 
@@ -49,7 +49,7 @@ The pretrained model is **"hey jarvis"**. To use your own name:
    recordings of your voice.
 3. Download the resulting **`.onnx`** file and put it in `data/wakeword/`, e.g.
    `data/wakeword/hey_robo.onnx`.
-4. In `.env`: `WAKEWORD=hey_robo` (the file name without `.onnx`). Restart.
+4. In `robot.toml`, under `[listen]`: `wakeword = "hey_robo"` (the file name without `.onnx`). Restart.
 
 Tips for choosing the phrase:
 
@@ -66,15 +66,15 @@ Tips for choosing the phrase:
 
 | Symptom | Fix |
 |---|---|
-| Wakes up on TV / random speech | Raise `WAKEWORD_THRESHOLD` (0.6–0.7) |
+| Wakes up on TV / random speech | Raise `listen.threshold` (0.6–0.7) |
 | Has to be called several times | Lower it (0.3–0.4), or move the mic closer |
 | Cuts you off mid-sentence | Raise `silence_s` in `Recorder` (`robot/listener.py`) |
-| Croatian transcripts are poor | `WHISPER_MODEL=small` (downloads ~480 MB to `data/whisper` once; ~3× slower) |
-| Too slow on the Pi | `WHISPER_MODEL=tiny`, `STT_LANGUAGES=hr` (skips language detection) |
+| Croatian transcripts are poor | `listen.whisper_model = "small"` (downloads ~480 MB to `data/whisper` once; ~3× slower) |
+| Too slow on the Pi | `listen.whisper_model = "tiny"`, `listen.languages = ["hr"]` (skips language detection) |
 
 ## Speech-to-text models
 
-| `WHISPER_MODEL` | Size | Laptop (int8, ~4 s sentence) | Pi 3B+ | Croatian |
+| `listen.whisper_model` | Size | Laptop (int8, ~4 s sentence) | Pi 3B+ | Croatian |
 |---|---|---|---|---|
 | `tiny` | 75 MB | about 1 s | a few seconds | weak |
 | `base` (default, in the image) | 145 MB | 2.6 s (measured) | 10+ s | small mistakes |

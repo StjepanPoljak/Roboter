@@ -14,17 +14,19 @@ else
 AUDIO_ARGS := --device /dev/snd --group-add $(shell getent group audio | cut -d: -f3)
 endif
 
-# Settings come from .env; credentials exported in your shell override it.
+# Settings come from robot.toml (mounted, so edits need a restart, not a rebuild).
+# Secrets come from .env; credentials exported in your shell override it.
 # Claude login: the robot's own long-lived token from `make claude-token`, in .env as
 # CLAUDE_CODE_OAUTH_TOKEN. (Not ~/.claude: that's this laptop's rotating login, and a
 # copy refreshing itself in the container would log Claude Code out here.)
 ENV_FILE := $(if $(wildcard .env),--env-file .env,)
+CONFIG_FILE := $(if $(wildcard robot.toml),-v $(CURDIR)/robot.toml:/app/robot.toml:ro,)
 PASS_ENV := -e CLAUDE_CODE_OAUTH_TOKEN -e ANTHROPIC_API_KEY
 DOCKER_RUN = docker run --rm -it \
 	--user $(UID):$(GID) --group-add $(VIDEO_GID) \
-	-v $(CURDIR)/data:/data $(ENV_FILE) $(PASS_ENV) $(AUDIO_ARGS)
+	-v $(CURDIR)/data:/data $(CONFIG_FILE) $(ENV_FILE) $(PASS_ENV) $(AUDIO_ARGS)
 
-.PHONY: build run run-nocam analyze react simulate enroll enroll-cam faces say ask listen-test transcribe claude-token test shell
+.PHONY: build config run run-nocam analyze react simulate enroll enroll-cam faces say ask listen-test transcribe claude-token test shell
 
 build:
 	docker build -t $(IMAGE) .
@@ -32,13 +34,17 @@ build:
 data:
 	mkdir -p data/spool data/snapshots data/audio
 
+## The settings the robot will use: robot.toml on top of the defaults
+config:
+	$(DOCKER_RUN) --entrypoint python $(IMAGE) -m robot.config
+
 ## Full robot: camera + vision + Claude + speech. Live stream (Motion mode) at http://localhost:8081
 run: data
 	$(DOCKER_RUN) --name robot --device $(CAMERA):/dev/video0 -p 8080:8080 -p 8081:8081 $(IMAGE) run
 
 ## Brain only, no camera: feed it pictures with `make simulate IMG=...`
 run-nocam: data
-	$(DOCKER_RUN) --name robot -e ROBOT_CAMERA=off $(IMAGE) run
+	$(DOCKER_RUN) --name robot -e ROBOT_CAMERA_MODE=off $(IMAGE) run
 
 ## make analyze IMG=data/test.jpg   (what the detectors see; no Claude)
 analyze: data
@@ -67,9 +73,9 @@ faces: data
 say: data
 	$(DOCKER_RUN) $(IMAGE) say $(if $(IN),--lang $(IN)) $(if $(OUT),--output $(OUT)) $(TEXT)
 
-## make ask TEXT="what do you see?" [IN=hr]   (talk to it by typing; no microphone)
+## make ask TEXT="what do you see?" [IN=hr] [IMG=data/x.jpg]   (talk to it by typing; no microphone)
 ask: data
-	$(DOCKER_RUN) $(IMAGE) ask $(if $(IN),--lang $(IN)) $(TEXT)
+	$(DOCKER_RUN) $(IMAGE) ask $(if $(IN),--lang $(IN)) $(if $(IMG),--image /data/$(notdir $(IMG))) $(TEXT)
 
 ## Wake word + speech-to-text only: prints what it heard, doesn't call Claude
 listen-test: data

@@ -26,7 +26,7 @@ COPY scripts/download_models.sh scripts/
 RUN sh scripts/download_models.sh /app/models \
     && chmod -R a+rX /app/models
 
-# Claude Code, for CLAUDE_BACKEND=cli (runs `claude -p` on your Claude subscription).
+# Claude Code, for claude.backend = "cli" (runs `claude -p` on your Claude subscription).
 # Pinned so the robot doesn't change behaviour on its own; bump deliberately.
 ARG CLAUDE_CODE_VERSION=2.1.304
 RUN curl -fsSL https://claude.ai/install.sh | bash -s "$CLAUDE_CODE_VERSION" \

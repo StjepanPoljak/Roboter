@@ -40,7 +40,7 @@ def mic_chunks(command: str) -> Iterator[np.ndarray]:
                     code = None
                 raise RuntimeError(
                     f"recorder {command.split()[0]!r} stopped (exit code {code}); "
-                    "is a microphone connected? Set ROBOT_LISTEN=0 to run without one"
+                    "is a microphone connected? Set listen.enabled = false in robot.toml to run without one"
                 )
             yield np.frombuffer(data, dtype=np.int16)
     finally:

@@ -1,7 +1,7 @@
 #!/bin/sh
-# "run" starts the event sources in the background (Motion for the camera, unless
-# ROBOT_CAMERA is sample or off; the listener for the microphone) and the brain in the
-# foreground. Any other command is passed to
+# "run" starts the event sources in the background (Motion for the camera, if camera.mode
+# is motion; the listener for the microphone, if listen.enabled) and the brain in the
+# foreground. Settings: robot.toml, read through `python -m robot.config`. Any other command is passed to
 # the CLI, e.g. `analyze`, `enroll`, `say`.
 set -eu
 
@@ -25,13 +25,13 @@ if [ "$1" != "run" ]; then
 fi
 
 PIDS=""
-if [ "${ROBOT_CAMERA:-motion}" = "motion" ]; then
+if [ "$(python -m robot.config camera.mode)" = "motion" ]; then
     motion -n -c /app/config/motion.conf &
     PIDS="$PIDS $!"
     # Lets voice events grab a current frame from Motion's live stream.
     export ROBOT_CAMERA_STREAM="${ROBOT_CAMERA_STREAM:-http://localhost:8081}"
 fi
-if [ "${ROBOT_LISTEN:-1}" = "1" ]; then
+if [ "$(python -m robot.config listen.enabled)" = "true" ]; then
     python -m robot listen &
     PIDS="$PIDS $!"
 fi

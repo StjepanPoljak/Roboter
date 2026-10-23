@@ -24,7 +24,7 @@ What to expect from a 3B+ (1 GB RAM, 4× Cortex-A53):
 - Motion at 640×480 / 10 fps: light, about 10–20% of one core.
 - SSD MobileNet v2 per snapshot: roughly 0.5–1 s. Faces add about 0.3–0.6 s per face.
 - Piper `low` voice: about real-time or a bit slower. If speech lags, use
-  espeak voices in `TTS_VOICES` (instant, robotic), e.g. `en=espeak:en,hr=espeak:hr`.
+  espeak voices in `speech.voices` (instant, robotic), e.g. `{ en = "espeak:en", hr = "espeak:hr" }`.
 - RAM: the brain uses about 400–500 MB with all models loaded, and the listener (wake word
   + Whisper `tiny`/`base`) another 200–300 MB. That's tight in 1 GB: add 1 GB of swap,
   don't run a desktop, and see docs/WAKEWORD.md for the slow-Pi options.

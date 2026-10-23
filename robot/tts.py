@@ -1,6 +1,6 @@
 """Offline speech synthesis: Piper (natural voices) or espeak-ng (robotic, tiny, many languages).
 
-Speech plays on the local speaker (AUDIO_PLAYER), or with AUDIO_OUTPUT=viomi on the
+Speech plays on the local speaker (speech.player), or with speech.output = "viomi" on the
 rooted vacuum's own speaker over SSH. Usage: docs/TTS.md.
 """
 
@@ -94,7 +94,7 @@ class Speaker:
 
     def _play_viomi(self, wav: Path) -> None:
         if not self.config.viomi_host:
-            log.warning("AUDIO_OUTPUT=viomi but VIOMI_HOST isn't set; file is %s", wav)
+            log.warning("speech.output is viomi but speech.viomi_host isn't set; file is %s", wav)
             return
         converted = to_stereo_44k(wav, wav.with_name(wav.stem + "-viomi.wav"))
         try:

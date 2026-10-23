@@ -55,11 +55,13 @@ class Robot:
             log.info("%s at %s:\n%s", source, f"{when:%H:%M:%S}", scene_text)
         self._respond(self.brain.react(scene_text, when, source))
 
-    def handle_voice(self, event: Event) -> None:
+    def handle_voice(self, event: Event, frame=None) -> None:
+        """frame: what the camera sees; default is a current frame from the camera."""
         log.info('voice at %s [%s]: "%s"', f"{event.time:%H:%M:%S}", event.language, event.transcript)
-        frame = self.camera_frame()
+        if frame is None:
+            frame = self.camera_frame()
         scene_text = self.vision.describe(frame).to_text() if frame is not None else "- (camera not available)"
-        self._respond(self.brain.react(scene_text, event.time, "voice", event.transcript, event.language))
+        self._respond(self.brain.react(scene_text, event.time, "voice", event.transcript, event.language, frame=frame))
 
     def camera_frame(self):
         """One current frame (sampled camera, or Motion's live stream), or None without a camera."""
@@ -107,7 +109,7 @@ class Robot:
                 self._process(event)
 
     def _run_sampling(self) -> None:
-        """Look at the camera every ROBOT_SAMPLE_INTERVAL_S, and handle queued events (voice)
+        """Look at the camera every camera.sample_interval_s, and handle queued events (voice)
         in between. If looking takes longer than the interval, samples just run back to back."""
         self.camera = Camera(self.config.camera_device)
         log.info("sampling %s every %.1fs", self.config.camera_device, self.config.sample_interval_s)

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import cv2
 
-from .config import Config
+from .config import Config, load_or_exit
 from .events import write_event
 from .faces import FaceDB
 from .vision import FaceRecognizer, Vision
@@ -116,9 +116,14 @@ def cmd_ask(config: Config, args) -> None:
     from .app import Robot
     from .events import Event
 
+    frame = None
+    if args.image:
+        frame = cv2.imread(str(args.image))
+        if frame is None:
+            sys.exit(f"{args.image}: can't read image")
     text = " ".join(args.text)
     event = Event("voice", "0", datetime.now().astimezone(), Path("-"), transcript=text, language=args.lang)
-    Robot(config).handle_voice(event)
+    Robot(config).handle_voice(event, frame)
 
 
 def cmd_listen(config: Config, args) -> None:
@@ -185,13 +190,14 @@ def main() -> None:
     p.set_defaults(func=cmd_faces)
 
     p = sub.add_parser("say", help="test speech output")
-    p.add_argument("--lang", help="language code from TTS_VOICES, e.g. en or hr")
-    p.add_argument("--output", choices=["local", "viomi"], help="override AUDIO_OUTPUT for this one")
+    p.add_argument("--lang", help="language code from speech.voices, e.g. en or hr")
+    p.add_argument("--output", choices=["local", "viomi"], help="override speech.output for this one")
     p.add_argument("text", nargs="+")
     p.set_defaults(func=cmd_say)
 
     p = sub.add_parser("ask", help="talk to the robot by typing: as if you'd said the wake word and TEXT")
     p.add_argument("--lang", default="en")
+    p.add_argument("--image", type=Path, help="use this picture as what the camera sees")
     p.add_argument("text", nargs="+")
     p.set_defaults(func=cmd_ask)
 
@@ -213,7 +219,7 @@ def main() -> None:
     )
     # The HTTP client logs every request at INFO; keep the robot's own log readable.
     logging.getLogger("httpx2").setLevel(logging.WARNING)
-    args.func(Config.from_env(), args)
+    args.func(load_or_exit(), args)
 
 
 if __name__ == "__main__":

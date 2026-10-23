@@ -6,3 +6,4 @@ __pycache__/
 viomi-backup/
 *.tar.gz
 *.upx
+robot.toml

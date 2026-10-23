@@ -132,17 +132,18 @@ class VoiceTest(unittest.TestCase):
         from robot.tts import Speaker
 
         with tempfile.TemporaryDirectory() as tmp:
-            config = replace(Config.from_env(), data_dir=Path(tmp), audio_output="viomi", viomi_host="")
+            config = replace(Config.load(), data_dir=Path(tmp), audio_output="viomi", viomi_host="")
             with self.assertLogs("robot.tts", "WARNING"):
                 Speaker(config).play(Path(tmp) / "missing.wav")
             self.assertFalse(config.speaking_flag.exists())
 
     def test_prompt_includes_what_was_heard(self):
+        from dataclasses import replace
+
         from robot.brain import Brain
         from robot.config import Config
 
-        os.environ["ROBOT_DRY_RUN"] = "1"
-        brain = Brain(Config.from_env())
+        brain = Brain(replace(Config.load(), dry_run=True))
         reaction = brain.react("- person (conf 0.90), center, close", datetime(2026, 10, 20, 18, 0), "voice",
                                heard="what do you see?", heard_language="en")
         self.assertIsNone(reaction.speech)
@@ -244,7 +245,7 @@ class CooldownTest(unittest.TestCase):
         known = Scene(640, 480, [Detection("person", 0.9, (0, 0, 10, 10))], [Face((0, 0, 5, 5), "Ana", 0.6)])
         unknown = Scene(640, 480, [Detection("person", 0.9, (0, 0, 10, 10))], [Face((0, 0, 5, 5), None, 0.2)])
         robot = Robot.__new__(Robot)  # skip loading models
-        robot.config = replace(Config.from_env(), cooldown_s=60)
+        robot.config = replace(Config.load(), cooldown_s=60)
         robot._reactions = {}
         robot.vision = mock.Mock()
         robot.vision.describe.side_effect = [known, unknown, known, unknown, Scene(640, 480)]
@@ -253,6 +254,85 @@ class CooldownTest(unittest.TestCase):
         for _ in range(5):
             robot.handle_frame(None, datetime.now(), "camera sample", chatty=False)
         self.assertEqual(robot.brain.react.call_count, 2)  # once per distinct scene
+
+
+class ConfigTest(unittest.TestCase):
+    def load(self, toml: str, environ: dict | None = None):
+        from robot.config import Config
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "robot.toml"
+            path.write_text(toml)
+            return Config.load(path, environ or {})
+
+    def test_example_file_matches_the_defaults(self):
+        from robot.config import Config
+
+        root = Path(__file__).resolve().parent.parent
+        self.assertEqual(Config.load(root / "robot.example.toml", {}), Config.load(Path("/nonexistent"), {}))
+
+    def test_file_then_environment(self):
+        config = self.load(
+            '[camera]\nmode = "sample"\nsample_interval_s = 2\n[speech]\nvoices = { hr = "espeak:hr" }\n',
+            {"ROBOT_CAMERA_SAMPLE_INTERVAL_S": "0.5", "ROBOT_LISTEN_ENABLED": "0", "ROBOT_LISTEN_LANGUAGES": "hr,en"},
+        )
+        self.assertEqual(config.camera_mode, "sample")
+        self.assertEqual(config.sample_interval_s, 0.5)
+        self.assertEqual(config.voices, {"hr": ("espeak", "hr")})
+        self.assertFalse(config.listen)
+        self.assertEqual(config.stt_languages, ("hr", "en"))
+
+    def test_mistakes_are_errors(self):
+        with self.assertRaisesRegex(ValueError, "unknown setting camera.mdoe"):
+            self.load('[camera]\nmdoe = "sample"\n')
+        with self.assertRaisesRegex(ValueError, "isn't one of"):
+            self.load('[camera]\nmode = "smaple"\n')
+        with self.assertRaisesRegex(ValueError, "vision.cooldown_s"):
+            self.load('[vision]\ncooldown_s = "a minute"\n')
+
+    def test_old_variables_are_flagged(self):
+        with self.assertLogs("robot.config", "WARNING") as logs:
+            self.load("", {"ROBOT_COOLDOWN_S": "5"})
+        self.assertIn("vision.cooldown_s", logs.output[0])
+
+
+class LookCloselyTest(unittest.TestCase):
+    def brain(self, look_closely: bool):
+        from dataclasses import replace
+        from unittest import mock
+
+        from robot.brain import Brain, Reaction
+        from robot.config import Config
+
+        brain = Brain(replace(Config.load(), claude_backend="cli", look_closely=look_closely))
+        brain._ask = mock.Mock(
+            side_effect=[Reaction(None, None, "", wants_look=True), Reaction("It's red.", "en", "")]
+        )
+        return brain
+
+    def test_one_photo_for_a_voice_question(self):
+        brain = self.brain(look_closely=True)
+        frame = np.zeros((48, 64, 3), dtype=np.uint8)
+        reaction = brain.react("- cup (conf 0.80), center, close", datetime.now(), "voice",
+                               heard="what colour is this cup?", heard_language="en", frame=frame)
+        self.assertEqual(reaction.speech, "It's red.")
+        first, second = brain._ask.call_args_list
+        self.assertTrue(first.kwargs["can_look"])
+        self.assertTrue(second.kwargs["jpeg"].startswith(b"\xff\xd8"))  # a JPEG
+        self.assertNotIn("can_look", second.kwargs)  # no second look
+        self.assertIn("looked closely", brain.history[-1])
+        self.assertIn("closer look", brain.system)
+
+    def test_never_for_motion_or_when_switched_off(self):
+        frame = np.zeros((48, 64, 3), dtype=np.uint8)
+        brain = self.brain(look_closely=True)
+        brain.react("- person (conf 0.90), center, close", datetime.now(), "motion", frame=frame)
+        self.assertFalse(brain._ask.call_args.kwargs["can_look"])
+
+        brain = self.brain(look_closely=False)
+        brain.react("- cup", datetime.now(), "voice", heard="what colour?", heard_language="en", frame=frame)
+        self.assertFalse(brain._ask.call_args.kwargs["can_look"])
+        self.assertNotIn("closer look", brain.system)
 
 
 if __name__ == "__main__":

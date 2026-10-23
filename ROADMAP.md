@@ -13,12 +13,12 @@ a Raspberry Pi 3B+, a USB webcam, a speaker, and later a small chassis.
 - [x] Piper (or espeak-ng) speaks the reply offline
 - [x] Cooldown and history so the robot doesn't repeat itself or burn API calls
 - [ ] Tune Motion (`threshold`, masks for windows/TV) on the real camera placement
-- [x] Alternative without tuning: `ROBOT_CAMERA=sample` looks every `ROBOT_SAMPLE_INTERVAL_S`
-- [ ] Measure cost per day at real event rates; tune `ROBOT_COOLDOWN_S` / model choice
+- [x] Alternative without tuning: `camera.mode = "sample"` looks every `camera.sample_interval_s`
+- [ ] Measure cost per day at real event rates; tune `vision.cooldown_s` / model choice
 - [x] Wake word (openWakeWord, pretrained "hey jarvis") + Whisper speech-to-text, English and Croatian
 - [x] Voice events: transcript + current camera scene go to Claude, which answers in your language
 - [x] Croatian speech output through the Serbian Piper voice (espeak-ng `hr` as an alternative)
-- [ ] Train the custom wake word (docs/WAKEWORD.md) and switch `WAKEWORD` to it
+- [ ] Train the custom wake word (docs/WAKEWORD.md) and switch `listen.wakeword` to it
 - [ ] Follow-up mode: after answering, listen for a few seconds without needing the wake word
 
 ## Stage 2: Move to the Raspberry Pi 3B+
@@ -40,8 +40,9 @@ a Raspberry Pi 3B+, a USB webcam, a speaker, and later a small chassis.
 ## Stage 4: Better senses
 
 - [ ] ArUco markers on doors, the dock, rooms: exact landmarks and distances
-- [ ] `look_closely` tool: Claude may ask for one real image, behind a config switch
-      (off by default) and/or a spoken "may I look?" confirmation
+- [x] `look_closely` tool: Claude may ask for one real image, behind a config switch
+      (off by default; docs/LOOK_CLOSELY.md)
+- [ ] Optional spoken "may I look?" confirmation before a `look_closely` image is sent
 - [ ] Event sources beyond Motion: MQTT, Home Assistant, a doorbell button
 - [ ] Persistent memory (who visited when, preferences) in a local SQLite file
 

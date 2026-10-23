@@ -1,0 +1,75 @@
+# The robot's settings. Copy to robot.toml and change what you need; anything left out
+# keeps the default shown here. Secrets (Claude token, API key) go in .env, not here.
+#
+# Check what the robot will actually use: `make config`.
+# One-off override without editing: ROBOT_<SECTION>_<KEY>, e.g. ROBOT_CAMERA_MODE=off.
+
+[claude]
+# Two ways to reach Claude (docs/CLAUDE_ACCESS.md):
+#   cli:  `claude -p` (Claude Code) on your Claude subscription. Run `make claude-token`
+#         once and put the token in .env.
+#   api:  the Claude API with an API key from platform.claude.com, billed per use.
+#   auto: api if ANTHROPIC_API_KEY is set, otherwise cli.
+backend = "auto"
+model = "claude-opus-5-5"
+# low | medium | high. Low is plenty for "what should I say?" and keeps usage down.
+effort = "low"
+# true = never call Claude; log the prompt it would have sent. Good for offline testing.
+dry_run = false
+# true = when you ask something the detectors can't answer ("what colour is this?",
+# "read this label"), Claude may ask for one real camera image. Voice questions only,
+# never motion or camera samples; every image sent is logged. docs/LOOK_CLOSELY.md
+look_closely = false
+
+[robot]
+name = "Robo"
+
+[speech]
+# language = "engine:voice"; the first one is the default.
+# engine is piper (natural, voice model in models/) or espeak (robotic, ~100 languages).
+# There's no Croatian Piper voice; the Serbian one reads Croatian text well.
+# Alternative: hr = "espeak:hr"
+voices = { en = "piper:en_US-lessac-low", hr = "piper:sr_RS-serbski_institut-medium" }
+# Local player command; the WAV path is appended. Empty: paplay when PULSE_SERVER is set
+# (desktop), else aplay (Pi).
+player = ""
+# Where speech plays: local (player above) or viomi (the rooted vacuum's speaker, over
+# SSH; one-time key setup in docs/TTS.md).
+output = "local"
+viomi_host = ""
+
+[camera]
+# What decides when to look:
+#   motion: Motion reacts to changed pixels (tune config/motion.conf), saves one snapshot
+#   sample: the brain looks at the camera every sample_interval_s, no tuning needed;
+#           costs more CPU, since the detectors run on every sample
+#   off:    no camera; feed pictures with `make simulate`
+mode = "motion"
+# Sample mode only: V4L2 device, camera index or stream URL.
+device = "/dev/video0"
+sample_interval_s = 1.0
+# Motion's live stream, for a current frame on voice events. Set automatically in motion
+# mode; leave empty.
+stream = ""
+
+[vision]
+min_confidence = 0.5
+# Cosine similarity needed to call a face by name. Raise it if strangers get your name.
+face_threshold = 0.363
+# Don't ask Claude again about a scene it already reacted to within this many seconds.
+cooldown_s = 60
+# true = keep Motion's snapshots in data/snapshots (default deletes them after processing).
+keep_snapshots = false
+
+[listen]
+# Wake word and speech-to-text (docs/WAKEWORD.md).
+enabled = true
+# Pretrained "hey_jarvis", or the name of your own model in data/wakeword/<name>.onnx
+wakeword = "hey_jarvis"
+threshold = 0.5
+# tiny | base (in the image) | small (may help Croatian, ~3x slower; downloaded to data/whisper once)
+whisper_model = "base"
+# Languages to expect; the first one wins when unsure.
+languages = ["en", "hr"]
+# Empty: parec when PULSE_SERVER is set (desktop), else arecord (Pi).
+recorder = ""

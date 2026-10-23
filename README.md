@@ -25,10 +25,14 @@ Recent history (oldest first):
 
 Claude answers by calling a `speak` tool, or by staying silent.
 
+The one exception is opt-in: with `claude.look_closely = true`, Claude may ask for one
+camera image when you ask it something the text can't answer ([docs/LOOK_CLOSELY.md](docs/LOOK_CLOSELY.md)).
+
 ## Quick start (laptop)
 
 ```sh
-cp .env.example .env
+cp .env.example .env               # secrets only
+cp robot.example.toml robot.toml   # every other setting; `make config` shows what's in effect
 make claude-token           # paste the token into .env (CLAUDE_CODE_OAUTH_TOKEN); see docs/CLAUDE_ACCESS.md
 make build                  # first build downloads ~70 MB of models into the image
 make test
@@ -50,7 +54,7 @@ make listen-test            # say "hey jarvis", then a sentence; prints the tran
 make run                    # live camera view: http://localhost:8081
 ```
 
-No token yet? Set `ROBOT_DRY_RUN=1` in `.env`. Everything else still runs, and the
+No token yet? Set `dry_run = true` under `[claude]` in `robot.toml`. Everything else still runs, and the
 log shows the prompt Claude would have received.
 
 ## Commands
@@ -59,7 +63,8 @@ All commands run inside the container (`make <target>`) or as `python -m robot <
 
 | make | What it does |
 |---|---|
-| `run` | Camera + brain. Reacts to movement (Motion), or looks every second with `ROBOT_CAMERA=sample` in `.env`. |
+| `config` | Prints the settings in effect (`robot.toml` on top of the defaults). |
+| `run` | Camera + brain. Reacts to movement (Motion), or looks every second with `camera.mode = "sample"`. |
 | `run-nocam` | Brain only. Feed it pictures with `make simulate IMG=data/x.jpg`. |
 | `analyze IMG=…` | Prints the scene description. No Claude, no speech. |
 | `react IMG=…` | One full pass on one picture. |
@@ -67,7 +72,7 @@ All commands run inside the container (`make <target>`) or as `python -m robot <
 | `enroll-cam NAME=…` | Learns a face from 8 webcam samples. |
 | `faces` | Lists known people. Remove one with `docker run … robot:dev faces --forget NAME`. |
 | `say TEXT=… [IN=hr] [OUT=viomi]` | Tests speech output, locally or on the vacuum's speaker ([docs/TTS.md](docs/TTS.md)). |
-| `ask TEXT=… [IN=hr]` | Talks to the robot by typing, as if you'd said the wake word. |
+| `ask TEXT=… [IN=hr] [IMG=…]` | Talks to the robot by typing, as if you'd said the wake word. `IMG` stands in for the camera. |
 | `listen-test` | Wake word + speech-to-text only; prints what it heard. |
 | `transcribe WAV=…` | Speech-to-text on a 16 kHz mono WAV. |
 | `claude-token` | Creates the Claude Code token for `.env` (runs on the host). |
@@ -78,7 +83,8 @@ Pictures you pass to `make` targets must be inside `data/`, which is mounted at 
 ## Layout
 
 ```
-robot/          Python package: app (main loop), vision, faces, listener, brain (Claude), tts, events
+robot/          Python package: app (main loop), config, camera, vision, faces, listener, brain (Claude), tts, events
+robot.example.toml  settings template; copy to robot.toml (git-ignored)
 config/         motion.conf
 scripts/        entrypoint, Motion hook, model download
 tests/          unit tests (python -m unittest)
@@ -90,6 +96,7 @@ data/           runtime state: spool, snapshots, faces.npz, audio (git-ignored)
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the pieces fit, and how to extend them
 - [docs/CLAUDE_ACCESS.md](docs/CLAUDE_ACCESS.md): subscription (`claude -p`) vs. API key
+- [docs/LOOK_CLOSELY.md](docs/LOOK_CLOSELY.md): letting Claude see one real image, when asked
 - [docs/FACES.md](docs/FACES.md): face enrollment, accuracy, privacy
 - [docs/WAKEWORD.md](docs/WAKEWORD.md): wake word, custom name, speech-to-text
 - [docs/TTS.md](docs/TTS.md): speech output, voices, playing on the vacuum's speaker

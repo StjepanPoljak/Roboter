@@ -1,4 +1,4 @@
-"""The camera, opened by the brain itself (ROBOT_CAMERA=sample) instead of through Motion."""
+"""The camera, opened by the brain itself (camera.mode = "sample") instead of through Motion."""
 
 import logging
 import threading
