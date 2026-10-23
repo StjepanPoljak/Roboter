@@ -232,5 +232,28 @@ class ModelsLoadTest(unittest.TestCase):
             self.assertEqual(scene.objects, [])
 
 
+class CooldownTest(unittest.TestCase):
+    def test_flickering_face_doesnt_call_claude_each_time(self):
+        from dataclasses import replace
+        from unittest import mock
+
+        from robot.app import Robot
+        from robot.brain import Reaction
+        from robot.config import Config
+
+        known = Scene(640, 480, [Detection("person", 0.9, (0, 0, 10, 10))], [Face((0, 0, 5, 5), "Ana", 0.6)])
+        unknown = Scene(640, 480, [Detection("person", 0.9, (0, 0, 10, 10))], [Face((0, 0, 5, 5), None, 0.2)])
+        robot = Robot.__new__(Robot)  # skip loading models
+        robot.config = replace(Config.from_env(), cooldown_s=60)
+        robot._reactions = {}
+        robot.vision = mock.Mock()
+        robot.vision.describe.side_effect = [known, unknown, known, unknown, Scene(640, 480)]
+        robot.brain = mock.Mock()
+        robot.brain.react.return_value = Reaction(None, None, "test")
+        for _ in range(5):
+            robot.handle_frame(None, datetime.now(), "camera sample", chatty=False)
+        self.assertEqual(robot.brain.react.call_count, 2)  # once per distinct scene
+
+
 if __name__ == "__main__":
     unittest.main()

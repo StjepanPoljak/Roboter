@@ -27,6 +27,10 @@
 │    mic → openWakeWord → Silero VAD → Whisper → /data/spool/*-voice-*.json           │
 │    voice events skip the queue and the cooldown; the brain grabs a fresh frame      │
 │    from Motion's stream (ROBOT_CAMERA_STREAM) so Claude knows what's in view        │
+│                                                                                     │
+│  ROBOT_CAMERA=sample: no Motion. robot/camera.py reads the camera in a thread and   │
+│    Robot.run() describes the newest frame every ROBOT_SAMPLE_INTERVAL_S, between    │
+│    spool events. Voice events use that same frame.                                  │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -35,6 +39,13 @@
 **Motion decides when, the brain decides what.** Motion is a mature C program that's very
 cheap at "did pixels change?". The neural networks only run on the one snapshot per event,
 which is what makes a Pi 3B+ viable.
+
+**Or sample, if Motion is hard to tune.** `ROBOT_CAMERA=sample` skips Motion and runs the
+detectors on one frame per `ROBOT_SAMPLE_INTERVAL_S` (default 1 s). Nothing to calibrate,
+and it notices someone standing still, which Motion can't. The price is CPU: the object
+detector runs on every sample, not once per event. On a Pi 3B+ it takes several hundred
+ms per frame, so an interval below that just means back-to-back samples. Claude is still
+only called for a scene it hasn't reacted to within the cooldown.
 
 **A spool directory instead of a message queue.** The hook writes a JSON file; the brain
 reads and deletes it. It survives restarts, needs no extra services, and you can test it
@@ -52,8 +63,10 @@ voice for that language"; no tool call means silence. Movement tools will be add
 events and replies are included as text, so Claude doesn't greet you twice in a minute,
 without keeping a growing conversation.
 
-**Two cost brakes.** Events with nothing recognized never reach Claude. An unchanged
-scene (same labels and same names) within `ROBOT_COOLDOWN_S` is skipped.
+**Two cost brakes.** Events with nothing recognized never reach Claude. A scene that
+Claude already reacted to (same labels and same names) within `ROBOT_COOLDOWN_S` is
+skipped. Every recent scene is remembered, not just the last one, so a face that flickers
+between your name and "unknown" from one sample to the next doesn't cost a call per flip.
 
 ## Models
 

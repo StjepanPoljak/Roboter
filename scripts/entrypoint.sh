@@ -1,6 +1,7 @@
 #!/bin/sh
-# "run" starts the event sources in the background (Motion for the camera, the listener
-# for the microphone) and the brain in the foreground. Any other command is passed to
+# "run" starts the event sources in the background (Motion for the camera, unless
+# ROBOT_CAMERA is sample or off; the listener for the microphone) and the brain in the
+# foreground. Any other command is passed to
 # the CLI, e.g. `analyze`, `enroll`, `say`.
 set -eu
 
@@ -24,7 +25,7 @@ if [ "$1" != "run" ]; then
 fi
 
 PIDS=""
-if [ "${ROBOT_MOTION:-1}" = "1" ]; then
+if [ "${ROBOT_CAMERA:-motion}" = "motion" ]; then
     motion -n -c /app/config/motion.conf &
     PIDS="$PIDS $!"
     # Lets voice events grab a current frame from Motion's live stream.

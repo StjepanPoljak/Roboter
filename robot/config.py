@@ -41,6 +41,9 @@ class Config:
     face_threshold: float
     cooldown_s: float
     keep_snapshots: bool
+    camera_mode: str  # motion | sample | off
+    camera_device: str  # sample mode: V4L2 device, index or stream URL
+    sample_interval_s: float
     camera_stream: str
 
     wakeword: str
@@ -93,6 +96,9 @@ class Config:
             face_threshold=float(_env("ROBOT_FACE_THRESHOLD", "0.363")),
             cooldown_s=float(_env("ROBOT_COOLDOWN_S", "60")),
             keep_snapshots=_env("ROBOT_KEEP_SNAPSHOTS", "0") == "1",
+            camera_mode=_env("ROBOT_CAMERA", "motion"),
+            camera_device=_env("ROBOT_CAMERA_DEVICE", "/dev/video0"),
+            sample_interval_s=float(_env("ROBOT_SAMPLE_INTERVAL_S", "1.0")),
             camera_stream=_env("ROBOT_CAMERA_STREAM", ""),
             wakeword=_env("WAKEWORD", "hey_jarvis"),
             wakeword_threshold=float(_env("WAKEWORD_THRESHOLD", "0.5")),

@@ -32,13 +32,13 @@ build:
 data:
 	mkdir -p data/spool data/snapshots data/audio
 
-## Full robot: Motion + vision + Claude + speech. Live stream at http://localhost:8081
+## Full robot: camera + vision + Claude + speech. Live stream (Motion mode) at http://localhost:8081
 run: data
 	$(DOCKER_RUN) --name robot --device $(CAMERA):/dev/video0 -p 8080:8080 -p 8081:8081 $(IMAGE) run
 
 ## Brain only, no camera: feed it pictures with `make simulate IMG=...`
 run-nocam: data
-	$(DOCKER_RUN) --name robot -e ROBOT_MOTION=0 $(IMAGE) run
+	$(DOCKER_RUN) --name robot -e ROBOT_CAMERA=off $(IMAGE) run
 
 ## make analyze IMG=data/test.jpg   (what the detectors see; no Claude)
 analyze: data

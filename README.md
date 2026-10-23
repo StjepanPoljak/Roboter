@@ -59,7 +59,7 @@ All commands run inside the container (`make <target>`) or as `python -m robot <
 
 | make | What it does |
 |---|---|
-| `run` | Motion + brain. Reacts to movement in front of the camera. |
+| `run` | Camera + brain. Reacts to movement (Motion), or looks every second with `ROBOT_CAMERA=sample` in `.env`. |
 | `run-nocam` | Brain only. Feed it pictures with `make simulate IMG=data/x.jpg`. |
 | `analyze IMG=…` | Prints the scene description. No Claude, no speech. |
 | `react IMG=…` | One full pass on one picture. |

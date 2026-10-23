@@ -13,6 +13,7 @@ a Raspberry Pi 3B+, a USB webcam, a speaker, and later a small chassis.
 - [x] Piper (or espeak-ng) speaks the reply offline
 - [x] Cooldown and history so the robot doesn't repeat itself or burn API calls
 - [ ] Tune Motion (`threshold`, masks for windows/TV) on the real camera placement
+- [x] Alternative without tuning: `ROBOT_CAMERA=sample` looks every `ROBOT_SAMPLE_INTERVAL_S`
 - [ ] Measure cost per day at real event rates; tune `ROBOT_COOLDOWN_S` / model choice
 - [x] Wake word (openWakeWord, pretrained "hey jarvis") + Whisper speech-to-text, English and Croatian
 - [x] Voice events: transcript + current camera scene go to Claude, which answers in your language
