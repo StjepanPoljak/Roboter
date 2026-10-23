@@ -13,7 +13,7 @@ embeddings. That's fast enough to do on the Pi, and you can delete a person inst
 
 ## Enrolling
 
-From the webcam (stop `make run` first, since Motion holds the camera):
+From the webcam (stop `make run` first: it holds the camera, in Motion and in sample mode):
 
 ```sh
 make enroll-cam NAME=Stjepan
@@ -48,7 +48,10 @@ docker run --rm -v $PWD/data:/data robot:dev faces --forget Ana
 ## Privacy
 
 - Photos and video **never leave the device**. Claude only gets text like
-  `face: recognized as Ana (similarity 0.64), center, close`.
+  `face: recognized as Ana (similarity 0.64), center, close`. The one exception is
+  opt-in: with `claude.look_closely = true`, Claude may ask for one camera image when
+  someone asks it a question the text can't answer, and that image can show faces
+  ([LOOK_CLOSELY.md](LOOK_CLOSELY.md)). Face embeddings are never sent.
 - `data/faces.npz` holds embeddings, not pictures. You can't view them as photos, but
   they *are* biometric data: treat the file as private, don't commit it (it's in
   `.gitignore`), and delete people who ask.
